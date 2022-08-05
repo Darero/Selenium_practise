@@ -35,6 +35,6 @@ browser.find_element(By.CSS_SELECTOR, '.compare-link').click()
 for i in range(2):
     selector = f'.products-slider__list .products-slider__item:nth-child({i + 1}) .products-slider__product-name a'
     received_name = browser.find_element(By.CSS_SELECTOR, selector).text
-    assert received_name in expected_names
+    assert received_name in expected_names, "Неверное название товара"
 
 browser.quit()
