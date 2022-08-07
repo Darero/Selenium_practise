@@ -5,6 +5,9 @@ from selenium.webdriver.common.keys import Keys
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.support.ui import WebDriverWait
 
+# Тестовый набор доступен по ссылке:
+# https://docs.google.com/spreadsheets/d/1PojX7MtlZJZMMbJ4lTwdyg1Lh1MxlH6JrCo_QuZc-I8/edit?usp=sharing
+
 
 @pytest.fixture
 def browser():
@@ -66,6 +69,15 @@ class TestCart:
                       'bonuses': 4890553, 'online_payment': 4839637}
     searchbar_selector = '#header-search [placeholder=\'Поиск по сайту\']'
 
+    @staticmethod
+    def buy_condition(test_browser):
+        WebDriverWait(test_browser, 5).until(
+            EC.all_of(
+                EC.visibility_of_element_located((By.CSS_SELECTOR, '.product-card-top__buy .buy-btn')),
+                EC.element_to_be_clickable((By.CSS_SELECTOR, '.product-card-top__buy .buy-btn'))
+            )
+        )
+
     def initiate_searching(self, test_browser, value):
         # print('Beginning search...')
         searchbar = test_browser.find_element(By.CSS_SELECTOR, self.searchbar_selector)
@@ -78,24 +90,46 @@ class TestCart:
         browser.get(self.url)
         for category, article in self.goods_articles.items():
             self.initiate_searching(browser, article)
-
-            WebDriverWait(browser, 5).until(
-                EC.all_of(
-                    EC.visibility_of_element_located((By.CSS_SELECTOR, '.product-card-top__buy .buy-btn')),
-                    EC.element_to_be_clickable((By.CSS_SELECTOR, '.product-card-top__buy .buy-btn'))
-                )
-            )
-            # WebDriverWait(browser, 10).until(
-            #     EC.visibility_of_element_located((By.CSS_SELECTOR, '.product-card-top__buy .buy-btn')))
-            #
-            # WebDriverWait(browser, 10).until(
-            #     EC.element_to_be_clickable((By.CSS_SELECTOR, '.product-card-top__buy .buy-btn')))
+            self.buy_condition(browser)
             browser.find_element(By.CSS_SELECTOR, '.product-card-top__buy .buy-btn').click()
             time.sleep(5)
         browser.find_element(By.CLASS_NAME, 'cart-link').click()
         articles = []
         for i in range(len(self.goods_articles)):
             article = browser.find_element(By.CSS_SELECTOR,
-                                 f'div.cart-items__product:nth-child({2 + i}) .cart-items__product-code').text
+                                           f'div.cart-items__product:nth-child({2 + i}) .cart-items__product-code').text
             articles.append(article)
         assert all(map(lambda x: int(x) in self.goods_articles.values(), articles))
+
+    def test_should_be_accessory_and_service(self, browser):
+        browser.get(self.url)
+        self.initiate_searching(browser, self.goods_articles['notebook'])
+        self.buy_condition(browser)
+        browser.find_element(By.CSS_SELECTOR, '.product-card-top__buy .buy-btn').click()
+        time.sleep(5)
+        browser.find_element(By.CLASS_NAME, 'cart-link').click()
+        try:
+            browser.find_element(By.CLASS_NAME, 'additional-services_desktop')
+            browser.find_element(By.CLASS_NAME, 'accessories')
+            browser.find_element(By.CLASS_NAME, 'accessories__slider')
+            browser.find_element(By.CLASS_NAME, 'cart-accessories__container')
+            assert True
+        except:
+            assert False
+
+    def test_should_have_bonuses_slider_and_bonuses_should_be_correct(self, browser):
+        browser.get(self.url)
+        self.initiate_searching(browser, self.goods_articles['bonuses'])
+        self.buy_condition(browser)
+        browser.find_element(By.CSS_SELECTOR, '.product-card-top__buy .buy-btn').click()
+        time.sleep(5)
+        browser.find_element(By.CLASS_NAME, 'cart-link').click()
+        bonuses = browser.find_element(By.CLASS_NAME, 'vobler').text
+        expected_bonuses = int(bonuses[bonuses.find('Выгода'):].strip('Выгода ₽').replace(' ', ''))
+        try:
+            browser.find_element(By.CLASS_NAME, 'total-amount__bonus-section')
+            bonuses = browser.find_element(By.CLASS_NAME, 'bonus-toggler__summary').text
+            received_bonuses = int(bonuses[bonuses.find('Выгода'):].strip('Выгода ₽').replace(' ', ''))
+            assert received_bonuses == expected_bonuses
+        except:
+            assert False
