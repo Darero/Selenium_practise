@@ -57,10 +57,10 @@ class TestSearchBar:
                'категориях' not in page_h1.lower()
 
     @pytest.mark.xfail
-    def test_should_not_lead_to_defined_catefory(self, browser):
+    def test_should_lead_to_defined_catefory_xfail(self, browser):
         self.initiate_searching(browser, 'Часы')
         page_h1 = browser.find_element(By.CSS_SELECTOR, 'h1.title').text
-        assert 'категориях' not in page_h1.lower() or 'часы' in page_h1.lower()
+        assert 'категориях' not in page_h1.lower() and 'часы' in page_h1.lower()
 
 
 class TestCart:
